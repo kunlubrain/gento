@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "gento"
+version = "0.1.0"
+description = "A simple, unified Python LLM client supporting Gemini, OpenAI, Volcengine with structured Pydantic schemas, tenacity retry, rate limiting, and web search."
+authors = ["Kun Lu <kunlu@example.com>"]
+readme = "README.md"
+license = "MIT"
+packages = [{include = "gento"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pydantic = "^2.0.0"
+tenacity = "^8.0.0"
+aiolimiter = "^1.1.0"
+openai = "^1.0.0"
+google-genai = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
+pytest-cov = "^4.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
