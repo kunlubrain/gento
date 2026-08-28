@@ -1,6 +1,6 @@
 # gento
 
-A simple, unified Python LLM client supporting Google Gemini, OpenAI, and Volcengine (Ark / Doubao) models with Pydantic structured output validation, tenacity retries, rate limiting, and web search capabilities.
+A lightweight LLM client.
 
 ## Features
 
@@ -96,17 +96,24 @@ asyncio.run(main())
 
 ## Supported Models & Provider Resolution
 
-`gento` automatically resolves model names based on standard provider prefixes or model patterns:
-
-- **Google Gemini**: `google/gemini-3.5-flash`, `gemini-3.5-flash`, `google/gemini-2.5-pro`
-- **OpenAI**: `openai/gpt-4o`, `gpt-4o-mini`, `gpt-5`, `o3-mini`
-- **Volcengine / Ark**: `volcengine/doubao-1.5-pro-32k`, `ark/doubao-1.5-pro-32k`, `doubao-pro-32k`, `ep-xxx`
+```
+google/gemini-3.5-flash
+google/gemini-3.6-flash
+google/gemini-3.7-flash
+openai/gpt-4o
+openai/gpt-4o-mini
+openai/gpt-5
+openai/gpt-4o-mini
+openai/gpt-4o
+volcengine/doubao-1.5-pro-32k
+volcengine/doubao-pro-32k
+```
 
 ## Environment Variables
 
-- **Gemini**: `GEMINI_API_KEY` or `GOOGLE_API_KEY`
+- **Gemini**: `GEMINI_API_KEY`
 - **OpenAI**: `OPENAI_API_KEY` (Optional: `OPENAI_BASE_URL`)
-- **Volcengine/Ark**: `VOLC_API_KEY`, `ARK_API_KEY`, or `VOLCENGINE_API_KEY` (Optional: `VOLC_BASE_URL` or `ARK_BASE_URL`)
+- **Volcengine/Ark**: `VOLCENGINE_API_KEY` (Optional: `VOLC_BASE_URL`)
 
 ## License
 
