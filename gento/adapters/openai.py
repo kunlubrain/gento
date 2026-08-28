@@ -1,4 +1,3 @@
-from typing import Optional
 
 from openai import AsyncOpenAI
 
@@ -18,8 +17,8 @@ class OpenAIAdapter(BaseAdapter):
     def __init__(
         self,
         api_key: str,
-        base_url: Optional[str] = None,
-        capabilities: Optional[ModelCapabilities] = None,
+        base_url: str | None = None,
+        capabilities: ModelCapabilities | None = None,
     ):
         self.api_key = api_key
         self.base_url = base_url

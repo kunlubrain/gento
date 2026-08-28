@@ -1,5 +1,6 @@
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any
 
 
 @dataclass
@@ -8,5 +9,5 @@ class Tool:
 
     name: str
     description: str
-    parameters: Dict[str, Any]
-    function: Optional[Callable[..., Awaitable[Any]]] = None
+    parameters: dict[str, Any]
+    function: Callable[..., Awaitable[Any]] | None = None

@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
+
 from pydantic import BaseModel
 
 from .tools import Tool
@@ -22,12 +23,12 @@ class GenerateRequest:
 
     model: str
     prompt: str
-    response_schema: Optional[Type[BaseModel]] = None
-    system_instruction: Optional[str] = None
-    tools: List[Tool] = field(default_factory=list)
-    temperature: Optional[float] = None
+    response_schema: type[BaseModel] | None = None
+    system_instruction: str | None = None
+    tools: list[Tool] = field(default_factory=list)
+    temperature: float | None = None
     enable_search: bool = False
-    extra_kwargs: Dict[str, Any] = field(default_factory=dict)
+    extra_kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -36,14 +37,14 @@ class ToolCall:
 
     id: str
     name: str
-    arguments: Dict[str, Any]
+    arguments: dict[str, Any]
 
 
 @dataclass
 class GenerateResponse:
     """Unified response object returned by LLMClient."""
 
-    content: Optional[str] = None
-    parsed: Optional[BaseModel] = None
-    tool_calls: List[ToolCall] = field(default_factory=list)
+    content: str | None = None
+    parsed: BaseModel | None = None
+    tool_calls: list[ToolCall] = field(default_factory=list)
     raw_response: Any = None

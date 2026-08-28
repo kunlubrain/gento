@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple, Type
 
 from .adapters.ark import ArkAdapter
 from .adapters.base import BaseAdapter
@@ -12,14 +11,14 @@ from .models import ModelCapabilities
 
 @dataclass(frozen=True)
 class ModelDefinition:
-    adapter_class: Type[BaseAdapter]
+    adapter_class: type[BaseAdapter]
     capabilities: ModelCapabilities
     provider: str
-    api_key_env_vars: Tuple[str, ...]
-    base_url_env_vars: Tuple[str, ...] = ()
-    default_base_url: Optional[str] = None
+    api_key_env_vars: tuple[str, ...]
+    base_url_env_vars: tuple[str, ...] = ()
+    default_base_url: str | None = None
 
-    def resolve_api_key(self) -> Optional[str]:
+    def resolve_api_key(self) -> str | None:
         """Resolve API key from explicit argument or known environment variables."""
         for env_var in self.api_key_env_vars:
             val = os.getenv(env_var)
@@ -27,9 +26,7 @@ class ModelDefinition:
                 return val
         return None
 
-    def resolve_base_url(
-        self, explicit_base_url: Optional[str] = None
-    ) -> Optional[str]:
+    def resolve_base_url(self, explicit_base_url: str | None = None) -> str | None:
         """Resolve base URL from explicit argument, known environment variables, or default."""
         if explicit_base_url:
             return explicit_base_url
@@ -78,15 +75,13 @@ ARK_MODEL_DEF = ModelDefinition(
     default_base_url="https://ark.cn-beijing.volces.com/api/v3",
 )
 
-MODEL_REGISTRY: Dict[str, ModelDefinition] = {
+MODEL_REGISTRY: dict[str, ModelDefinition] = {
     "google/gemini-3.5-flash": GEMINI_MODEL_DEF,
     "google/gemini-3.6-flash": GEMINI_MODEL_DEF,
     "google/gemini-3.7-flash": GEMINI_MODEL_DEF,
     "openai/gpt-4o": OPENAI_MODEL_DEF,
     "openai/gpt-4o-mini": OPENAI_MODEL_DEF,
     "openai/gpt-5": OPENAI_MODEL_DEF,
-    "openai/gpt-4o-mini": OPENAI_MODEL_DEF,
-    "openai/gpt-4o": OPENAI_MODEL_DEF,
     "volcengine/doubao-1.5-pro-32k": ARK_MODEL_DEF,
     "volcengine/doubao-pro-32k": ARK_MODEL_DEF,
 }

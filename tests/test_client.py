@@ -1,10 +1,11 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from pydantic import BaseModel, Field
 
 from gento import (
-    LLMClient,
     GenerateResponse,
+    LLMClient,
     UnsupportedModelError,
 )
 
@@ -94,9 +95,10 @@ async def test_client_unsupported_model():
 @pytest.mark.asyncio
 async def test_client_get_adapter_resolves_env_keys():
     import os
+
+    from gento.adapters.ark import ArkAdapter
     from gento.adapters.gemini import GeminiAdapter
     from gento.adapters.openai import OpenAIAdapter
-    from gento.adapters.ark import ArkAdapter
 
     client = LLMClient()
     with patch.dict(os.environ, {"GEMINI_API_KEY": "env-gemini-key"}):

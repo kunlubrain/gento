@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from ..models import GenerateRequest, GenerateResponse, ModelCapabilities
 
@@ -7,7 +6,7 @@ from ..models import GenerateRequest, GenerateResponse, ModelCapabilities
 class BaseAdapter(ABC):
     """Abstract base class for provider-specific LLM adapters."""
 
-    def __init__(self, capabilities: Optional[ModelCapabilities] = None):
+    def __init__(self, capabilities: ModelCapabilities | None = None):
         self.capabilities = capabilities or ModelCapabilities()
 
     @abstractmethod

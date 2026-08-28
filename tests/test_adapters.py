@@ -1,10 +1,11 @@
 import os
-import pytest
 from unittest.mock import patch
 
+import pytest
+
+from gento.adapters.ark import ArkAdapter
 from gento.adapters.gemini import GeminiAdapter
 from gento.adapters.openai import OpenAIAdapter
-from gento.adapters.ark import ArkAdapter
 
 
 def test_gemini_adapter_init_missing_key():

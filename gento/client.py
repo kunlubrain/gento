@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -22,9 +22,9 @@ class LLMClient:
 
     def __init__(
         self,
-        model: Optional[str] = None,
+        model: str | None = None,
         *,
-        rate_limit_rps: Optional[float] = None,
+        rate_limit_rps: float | None = None,
         max_retries: int = 3,
     ):
         """Initialize LLMClient.
@@ -40,7 +40,7 @@ class LLMClient:
         self.default_model = model or "google/gemini-3.5-flash"
         self.rate_limiter = RateLimiterManager(default_rps=rate_limit_rps)
         self.default_max_retries = max_retries
-        self._adapters: Dict[str, BaseAdapter] = {}
+        self._adapters: dict[str, BaseAdapter] = {}
 
     def _get_adapter(self, model: str) -> BaseAdapter:
         if model in self._adapters:
@@ -54,14 +54,14 @@ class LLMClient:
         self,
         prompt: str,
         *,
-        model: Optional[str] = None,
-        response_schema: Optional[Type[T]] = None,
-        system_instruction: Optional[str] = None,
-        tools: Optional[List[Tool]] = None,
-        temperature: Optional[float] = None,
+        model: str | None = None,
+        response_schema: type[T] | None = None,
+        system_instruction: str | None = None,
+        tools: list[Tool] | None = None,
+        temperature: float | None = None,
         enable_search: bool = False,
-        retry_count: Optional[int] = None,
-        rate_limit_rps: Optional[float] = None,
+        retry_count: int | None = None,
+        rate_limit_rps: float | None = None,
     ) -> GenerateResponse:
         """Asynchronously generate content or structured output from an LLM model."""
         target_model = model or self.default_model
@@ -89,15 +89,15 @@ class LLMClient:
     async def generate_structured(
         self,
         prompt: str,
-        response_schema: Type[T],
+        response_schema: type[T],
         *,
-        model: Optional[str] = None,
-        system_instruction: Optional[str] = None,
-        tools: Optional[List[Tool]] = None,
-        temperature: Optional[float] = None,
+        model: str | None = None,
+        system_instruction: str | None = None,
+        tools: list[Tool] | None = None,
+        temperature: float | None = None,
         enable_search: bool = False,
-        retry_count: Optional[int] = None,
-        rate_limit_rps: Optional[float] = None,
+        retry_count: int | None = None,
+        rate_limit_rps: float | None = None,
     ) -> T:
         """Generate structured output validated against a Pydantic model."""
         target_model = model or self.default_model
@@ -123,16 +123,16 @@ class LLMClient:
     async def generate_dict(
         self,
         prompt: str,
-        response_schema: Type[T],
+        response_schema: type[T],
         *,
-        model: Optional[str] = None,
-        system_instruction: Optional[str] = None,
-        tools: Optional[List[Tool]] = None,
-        temperature: Optional[float] = None,
+        model: str | None = None,
+        system_instruction: str | None = None,
+        tools: list[Tool] | None = None,
+        temperature: float | None = None,
         enable_search: bool = False,
-        retry_count: Optional[int] = None,
-        rate_limit_rps: Optional[float] = None,
-    ) -> Dict[str, Any]:
+        retry_count: int | None = None,
+        rate_limit_rps: float | None = None,
+    ) -> dict[str, Any]:
         """Generate structured output and return it as a python dictionary."""
         structured = await self.generate_structured(
             prompt,
@@ -158,7 +158,7 @@ class LLMClient:
     def generate_structured_sync(
         self,
         prompt: str,
-        response_schema: Type[T],
+        response_schema: type[T],
         **kwargs: Any,
     ) -> T:
         """Synchronous wrapper for generate_structured."""
@@ -167,8 +167,8 @@ class LLMClient:
     def generate_dict_sync(
         self,
         prompt: str,
-        response_schema: Type[T],
+        response_schema: type[T],
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Synchronous wrapper for generate_dict."""
         return asyncio.run(self.generate_dict(prompt, response_schema, **kwargs))

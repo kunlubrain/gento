@@ -1,5 +1,6 @@
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from pydantic import BaseModel
 
 from gento.exceptions import SchemaParseError

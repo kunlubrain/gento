@@ -1,5 +1,7 @@
 import logging
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from typing import Any
+
 from tenacity import (
     AsyncRetrying,
     before_sleep_log,
