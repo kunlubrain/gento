@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 from openai import AsyncOpenAI
@@ -18,28 +17,17 @@ class ArkAdapter(BaseAdapter):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str,
         base_url: Optional[str] = None,
         capabilities: Optional[ModelCapabilities] = None,
     ):
-        key = (
-            api_key
-            or os.getenv("VOLC_API_KEY")
-            or os.getenv("ARK_API_KEY")
-            or os.getenv("VOLCENGINE_API_KEY")
-        )
-        if not key:
+        self.api_key = api_key
+        self.base_url = base_url
+        if not self.api_key:
             raise ValueError(
-                "VOLC_API_KEY, ARK_API_KEY, or VOLCENGINE_API_KEY must be set in environment or passed to client."
+                "Missing API keys: VOLC_API_KEY, ARK_API_KEY, or VOLCENGINE_API_KEY."
             )
 
-        url = (
-            base_url
-            or os.getenv("VOLC_BASE_URL")
-            or os.getenv("ARK_BASE_URL")
-            or "https://ark.cn-beijing.volces.com/api/v3"
-        )
-        self.client = AsyncOpenAI(api_key=key, base_url=url)
         super().__init__(
             capabilities
             or ModelCapabilities(
@@ -50,6 +38,21 @@ class ArkAdapter(BaseAdapter):
                 search=True,
             )
         )
+
+    def _get_client(self) -> AsyncOpenAI:
+        key = self.api_key
+        if not key:
+            raise ValueError(
+                "VOLC_API_KEY, ARK_API_KEY, or VOLCENGINE_API_KEY must be set in environment or passed to client."
+            )
+
+        url = self.base_url
+        return AsyncOpenAI(api_key=key, base_url=url)
+
+    @property
+    def client(self) -> AsyncOpenAI:
+        """Dynamically get client bound to active event loop."""
+        return self._get_client()
 
     @staticmethod
     def normalize_model_name(raw_model: str) -> str:
@@ -104,7 +107,8 @@ class ArkAdapter(BaseAdapter):
             kwargs["response_format"] = {"type": "json_object"}
 
         try:
-            response = await self.client.chat.completions.create(**kwargs)
+            client = self._get_client()
+            response = await client.chat.completions.create(**kwargs)
         except Exception as e:
             raise APIError(f"Volcengine/Ark API error: {str(e)}") from e
 
@@ -148,6 +152,7 @@ class ArkAdapter(BaseAdapter):
             name = getattr(function, "name", "")
             args_str = getattr(function, "arguments", "")
             import json
+
             try:
                 args = json.loads(args_str) if isinstance(args_str, str) else args_str
             except Exception:

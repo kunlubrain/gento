@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 from openai import AsyncOpenAI
@@ -18,18 +17,15 @@ class OpenAIAdapter(BaseAdapter):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str,
         base_url: Optional[str] = None,
         capabilities: Optional[ModelCapabilities] = None,
     ):
-        key = api_key or os.getenv("OPENAI_API_KEY")
-        if not key:
-            raise ValueError(
-                "OPENAI_API_KEY must be set in environment or passed to client."
-            )
+        self.api_key = api_key
+        self.base_url = base_url
+        if not self.api_key:
+            raise ValueError("Missing OPENAI_API_KEY!")
 
-        url = base_url or os.getenv("OPENAI_BASE_URL")
-        self.client = AsyncOpenAI(api_key=key, base_url=url)
         super().__init__(
             capabilities
             or ModelCapabilities(
@@ -40,6 +36,18 @@ class OpenAIAdapter(BaseAdapter):
                 search=True,
             )
         )
+
+    def _get_client(self) -> AsyncOpenAI:
+        if not self.api_key:
+            raise ValueError(
+                "OPENAI_API_KEY must be set in environment or passed to client."
+            )
+        return AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+
+    @property
+    def client(self) -> AsyncOpenAI:
+        """Dynamically get client bound to active event loop."""
+        return self._get_client()
 
     @staticmethod
     def normalize_model_name(raw_model: str) -> str:
@@ -89,11 +97,12 @@ class OpenAIAdapter(BaseAdapter):
             ]
 
         try:
+            client = self._get_client()
             if request.response_schema:
                 kwargs["response_format"] = request.response_schema
-                response = await self.client.beta.chat.completions.parse(**kwargs)
+                response = await client.beta.chat.completions.parse(**kwargs)
             else:
-                response = await self.client.chat.completions.create(**kwargs)
+                response = await client.chat.completions.create(**kwargs)
         except Exception as e:
             raise APIError(f"OpenAI API error: {str(e)}") from e
 
@@ -143,6 +152,7 @@ class OpenAIAdapter(BaseAdapter):
             name = getattr(function, "name", "")
             args_str = getattr(function, "arguments", "")
             import json
+
             try:
                 args = json.loads(args_str) if isinstance(args_str, str) else args_str
             except Exception:

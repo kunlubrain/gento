@@ -5,9 +5,7 @@ from pydantic import BaseModel, Field
 from gento import (
     LLMClient,
     GenerateResponse,
-    SchemaParseError,
     UnsupportedModelError,
-    Tool,
 )
 
 
@@ -47,7 +45,10 @@ async def test_client_generate_calls_adapter():
 async def test_client_generate_structured_success():
     client = LLMClient("openai/gpt-4o")
     expected_profile = UserProfile(name="Alice", age=30, interests=["coding"])
-    mock_response = GenerateResponse(content='{"name":"Alice","age":30,"interests":["coding"]}', parsed=expected_profile)
+    mock_response = GenerateResponse(
+        content='{"name":"Alice","age":30,"interests":["coding"]}',
+        parsed=expected_profile,
+    )
 
     mock_adapter = MagicMock()
     mock_adapter.generate = AsyncMock(return_value=mock_response)
@@ -66,7 +67,9 @@ async def test_client_generate_structured_success():
 async def test_client_generate_dict_success():
     client = LLMClient("volcengine/doubao-1.5-pro-32k")
     expected_profile = UserProfile(name="Bob", age=25)
-    mock_response = GenerateResponse(content='{"name":"Bob","age":25}', parsed=expected_profile)
+    mock_response = GenerateResponse(
+        content='{"name":"Bob","age":25}', parsed=expected_profile
+    )
 
     mock_adapter = MagicMock()
     mock_adapter.generate = AsyncMock(return_value=mock_response)
@@ -86,3 +89,28 @@ async def test_client_unsupported_model():
     client = LLMClient()
     with pytest.raises(UnsupportedModelError):
         await client.generate("Hi", model="unknown-provider/foo-bar")
+
+
+@pytest.mark.asyncio
+async def test_client_get_adapter_resolves_env_keys():
+    import os
+    from gento.adapters.gemini import GeminiAdapter
+    from gento.adapters.openai import OpenAIAdapter
+    from gento.adapters.ark import ArkAdapter
+
+    client = LLMClient()
+    with patch.dict(os.environ, {"GEMINI_API_KEY": "env-gemini-key"}):
+        adapter = client._get_adapter("google/gemini-3.5-flash")
+        assert isinstance(adapter, GeminiAdapter)
+        assert adapter.api_key == "env-gemini-key"
+
+    with patch.dict(os.environ, {"OPENAI_API_KEY": "env-openai-key"}):
+        adapter_openai = client._get_adapter("openai/gpt-4o")
+        assert isinstance(adapter_openai, OpenAIAdapter)
+        assert adapter_openai.api_key == "env-openai-key"
+
+    with patch.dict(os.environ, {"VOLC_API_KEY": "env-volc-key"}):
+        adapter_ark = client._get_adapter("volcengine/doubao-1.5-pro-32k")
+        assert isinstance(adapter_ark, ArkAdapter)
+        assert adapter_ark.api_key == "env-volc-key"
+        assert adapter_ark.base_url == "https://ark.cn-beijing.volces.com/api/v3"

@@ -1,5 +1,6 @@
+import os
 from dataclasses import dataclass
-from typing import Dict, Optional, Type
+from typing import Dict, Optional, Tuple, Type
 
 from .adapters.ark import ArkAdapter
 from .adapters.base import BaseAdapter
@@ -13,6 +14,30 @@ from .models import ModelCapabilities
 class ModelDefinition:
     adapter_class: Type[BaseAdapter]
     capabilities: ModelCapabilities
+    provider: str
+    api_key_env_vars: Tuple[str, ...]
+    base_url_env_vars: Tuple[str, ...] = ()
+    default_base_url: Optional[str] = None
+
+    def resolve_api_key(self) -> Optional[str]:
+        """Resolve API key from explicit argument or known environment variables."""
+        for env_var in self.api_key_env_vars:
+            val = os.getenv(env_var)
+            if val:
+                return val
+        return None
+
+    def resolve_base_url(
+        self, explicit_base_url: Optional[str] = None
+    ) -> Optional[str]:
+        """Resolve base URL from explicit argument, known environment variables, or default."""
+        if explicit_base_url:
+            return explicit_base_url
+        for env_var in self.base_url_env_vars:
+            val = os.getenv(env_var)
+            if val:
+                return val
+        return self.default_base_url
 
 
 DEFAULT_CAPABILITIES = ModelCapabilities(
@@ -23,81 +48,77 @@ DEFAULT_CAPABILITIES = ModelCapabilities(
     search=True,
 )
 
-# Known model mapping registry for fast lookup
+# Provider constants and default configurations
+GOOGLE_PROVIDER = "google"
+OPENAI_PROVIDER = "openai"
+VOLCENGINE_PROVIDER = "volcengine"
+
+GEMINI_MODEL_DEF = ModelDefinition(
+    adapter_class=GeminiAdapter,
+    capabilities=DEFAULT_CAPABILITIES,
+    provider=GOOGLE_PROVIDER,
+    api_key_env_vars=("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+    base_url_env_vars=("GEMINI_BASE_URL", "GOOGLE_BASE_URL"),
+)
+
+OPENAI_MODEL_DEF = ModelDefinition(
+    adapter_class=OpenAIAdapter,
+    capabilities=DEFAULT_CAPABILITIES,
+    provider=OPENAI_PROVIDER,
+    api_key_env_vars=("OPENAI_API_KEY",),
+    base_url_env_vars=("OPENAI_BASE_URL",),
+)
+
+ARK_MODEL_DEF = ModelDefinition(
+    adapter_class=ArkAdapter,
+    capabilities=DEFAULT_CAPABILITIES,
+    provider=VOLCENGINE_PROVIDER,
+    api_key_env_vars=("VOLC_API_KEY", "ARK_API_KEY", "VOLCENGINE_API_KEY"),
+    base_url_env_vars=("VOLC_BASE_URL", "ARK_BASE_URL", "VOLCENGINE_BASE_URL"),
+    default_base_url="https://ark.cn-beijing.volces.com/api/v3",
+)
+
 MODEL_REGISTRY: Dict[str, ModelDefinition] = {
-    # Gemini models
-    "google/gemini-3.5-flash": ModelDefinition(GeminiAdapter, DEFAULT_CAPABILITIES),
-    "gemini-3.5-flash": ModelDefinition(GeminiAdapter, DEFAULT_CAPABILITIES),
-    "google/gemini-2.5-flash": ModelDefinition(GeminiAdapter, DEFAULT_CAPABILITIES),
-    "gemini-2.5-flash": ModelDefinition(GeminiAdapter, DEFAULT_CAPABILITIES),
-    "google/gemini-2.5-pro": ModelDefinition(GeminiAdapter, DEFAULT_CAPABILITIES),
-    "gemini-2.5-pro": ModelDefinition(GeminiAdapter, DEFAULT_CAPABILITIES),
-    # OpenAI models
-    "openai/gpt-4o": ModelDefinition(OpenAIAdapter, DEFAULT_CAPABILITIES),
-    "gpt-4o": ModelDefinition(OpenAIAdapter, DEFAULT_CAPABILITIES),
-    "openai/gpt-4o-mini": ModelDefinition(OpenAIAdapter, DEFAULT_CAPABILITIES),
-    "gpt-4o-mini": ModelDefinition(OpenAIAdapter, DEFAULT_CAPABILITIES),
-    "gpt-5": ModelDefinition(OpenAIAdapter, DEFAULT_CAPABILITIES),
-    "o3-mini": ModelDefinition(OpenAIAdapter, DEFAULT_CAPABILITIES),
-    "o1": ModelDefinition(OpenAIAdapter, DEFAULT_CAPABILITIES),
-    # Ark / Volcengine models
-    "volcengine/doubao-1.5-pro-32k": ModelDefinition(ArkAdapter, DEFAULT_CAPABILITIES),
-    "ark/doubao-1.5-pro-32k": ModelDefinition(ArkAdapter, DEFAULT_CAPABILITIES),
-    "doubao-1.5-pro-32k": ModelDefinition(ArkAdapter, DEFAULT_CAPABILITIES),
-    "doubao-pro-32k": ModelDefinition(ArkAdapter, DEFAULT_CAPABILITIES),
+    "google/gemini-3.5-flash": GEMINI_MODEL_DEF,
+    "google/gemini-3.6-flash": GEMINI_MODEL_DEF,
+    "google/gemini-3.7-flash": GEMINI_MODEL_DEF,
+    "openai/gpt-4o": OPENAI_MODEL_DEF,
+    "openai/gpt-4o-mini": OPENAI_MODEL_DEF,
+    "openai/gpt-5": OPENAI_MODEL_DEF,
+    "openai/gpt-4o-mini": OPENAI_MODEL_DEF,
+    "openai/gpt-4o": OPENAI_MODEL_DEF,
+    "volcengine/doubao-1.5-pro-32k": ARK_MODEL_DEF,
+    "volcengine/doubao-pro-32k": ARK_MODEL_DEF,
 }
 
 
 def resolve_model_definition(model: str) -> ModelDefinition:
-    """Resolve model name to its ModelDefinition using registry or prefix pattern matching."""
     if model in MODEL_REGISTRY:
         return MODEL_REGISTRY[model]
-
-    lower_model = model.lower()
-
-    # Prefix and pattern matching for dynamic / future models
-    if (
-        lower_model.startswith("google/")
-        or lower_model.startswith("gemini/")
-        or "gemini" in lower_model
-    ):
-        return ModelDefinition(GeminiAdapter, DEFAULT_CAPABILITIES)
-
-    if (
-        lower_model.startswith("openai/")
-        or lower_model.startswith("gpt-")
-        or lower_model.startswith("o1")
-        or lower_model.startswith("o3")
-    ):
-        return ModelDefinition(OpenAIAdapter, DEFAULT_CAPABILITIES)
-
-    if (
-        lower_model.startswith("volcengine/")
-        or lower_model.startswith("ark/")
-        or lower_model.startswith("ep-")
-        or "doubao" in lower_model
-    ):
-        return ModelDefinition(ArkAdapter, DEFAULT_CAPABILITIES)
-
-    raise UnsupportedModelError(
-        f"Unsupported or unknown model '{model}'. "
-        f"Supported provider prefixes include 'google/', 'openai/', 'volcengine/', 'ark/'."
-    )
+    raise UnsupportedModelError(f"Unsupported {model=}")
 
 
 def create_adapter(
     model: str,
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
 ) -> BaseAdapter:
-    """Factory function to build an adapter for a given model."""
+    """Factory function to build an adapter for a given model, resolving env vars automatically."""
     definition = resolve_model_definition(model)
     adapter_cls = definition.adapter_class
 
-    kwargs: dict = {"capabilities": definition.capabilities}
-    if api_key:
-        kwargs["api_key"] = api_key
-    if base_url:
-        kwargs["base_url"] = base_url
+    resolved_api_key = definition.resolve_api_key()
+    resolved_base_url = definition.resolve_base_url()
+
+    if not resolved_api_key:
+        raise ValueError(
+            f"Missing API key for {model=}"
+            f"Set one of the environment variables: {definition.api_key_env_vars}"
+        )
+
+    kwargs: dict = {
+        "capabilities": definition.capabilities,
+        "api_key": resolved_api_key,
+    }
+    if resolved_base_url is not None:
+        kwargs["base_url"] = resolved_base_url
 
     return adapter_cls(**kwargs)

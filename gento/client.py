@@ -24,23 +24,20 @@ class LLMClient:
         self,
         model: Optional[str] = None,
         *,
-        api_keys: Optional[Dict[str, str]] = None,
-        base_urls: Optional[Dict[str, str]] = None,
         rate_limit_rps: Optional[float] = None,
         max_retries: int = 3,
     ):
         """Initialize LLMClient.
 
+        API keys and base URLs are automatically resolved from environment variables
+        (e.g., loaded via dotenv or shell environment) using the known model registry mapping.
+
         :param model: Default model name for subsequent generation calls.
                       Defaults to "google/gemini-3.5-flash" if None.
-        :param api_keys: Optional dict of provider API keys to override env vars.
-        :param base_urls: Optional dict of provider base URLs.
         :param rate_limit_rps: Optional rate limit in requests per second.
         :param max_retries: Default retry count for failed schema validation or rate limits.
         """
         self.default_model = model or "google/gemini-3.5-flash"
-        self.api_keys = api_keys or {}
-        self.base_urls = base_urls or {}
         self.rate_limiter = RateLimiterManager(default_rps=rate_limit_rps)
         self.default_max_retries = max_retries
         self._adapters: Dict[str, BaseAdapter] = {}
@@ -49,11 +46,7 @@ class LLMClient:
         if model in self._adapters:
             return self._adapters[model]
 
-        # Check for provider specific API key/base url overrides
-        api_key = self.api_keys.get(model) or self.api_keys.get("default")
-        base_url = self.base_urls.get(model) or self.base_urls.get("default")
-
-        adapter = create_adapter(model=model, api_key=api_key, base_url=base_url)
+        adapter = create_adapter(model=model)
         self._adapters[model] = adapter
         return adapter
 
@@ -75,7 +68,6 @@ class LLMClient:
         adapter = self._get_adapter(target_model)
         retries = retry_count if retry_count is not None else self.default_max_retries
 
-        # Rate limiting check
         await self.rate_limiter.acquire(target_model, rps=rate_limit_rps)
 
         request = GenerateRequest(
@@ -170,9 +162,7 @@ class LLMClient:
         **kwargs: Any,
     ) -> T:
         """Synchronous wrapper for generate_structured."""
-        return asyncio.run(
-            self.generate_structured(prompt, response_schema, **kwargs)
-        )
+        return asyncio.run(self.generate_structured(prompt, response_schema, **kwargs))
 
     def generate_dict_sync(
         self,

@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 from google import genai
@@ -19,16 +18,15 @@ class GeminiAdapter(BaseAdapter):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str,
+        base_url: Optional[str] = None,
         capabilities: Optional[ModelCapabilities] = None,
     ):
-        key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if not key:
-            raise ValueError(
-                "GEMINI_API_KEY or GOOGLE_API_KEY must be set in environment or passed to client."
-            )
+        self.api_key = api_key
+        self.base_url = base_url
+        if not self.api_key:
+            raise ValueError("Missing GEMINI_API_KEY!")
 
-        self.client = genai.Client(api_key=key)
         super().__init__(
             capabilities
             or ModelCapabilities(
@@ -39,6 +37,14 @@ class GeminiAdapter(BaseAdapter):
                 search=True,
             )
         )
+
+    def _get_client(self) -> genai.Client:
+        return genai.Client(api_key=self.api_key)
+
+    @property
+    def client(self) -> genai.Client:
+        """Dynamically get client bound to active event loop."""
+        return self._get_client()
 
     @staticmethod
     def normalize_model_name(raw_model: str) -> str:
@@ -94,7 +100,9 @@ class GeminiAdapter(BaseAdapter):
             )
 
         if request.enable_search:
-            tools_list.append(gemini_types.Tool(google_search=gemini_types.GoogleSearch()))
+            tools_list.append(
+                gemini_types.Tool(google_search=gemini_types.GoogleSearch())
+            )
 
         if tools_list:
             config_kwargs["tools"] = tools_list
@@ -102,7 +110,8 @@ class GeminiAdapter(BaseAdapter):
         config = gemini_types.GenerateContentConfig(**config_kwargs)
 
         try:
-            response = await self.client.aio.models.generate_content(
+            client = self._get_client()
+            response = await client.aio.models.generate_content(
                 model=model_name,
                 contents=request.prompt,
                 config=config,
