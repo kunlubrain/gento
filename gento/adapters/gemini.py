@@ -1,4 +1,3 @@
-
 from google import genai
 from google.genai import types as gemini_types
 
@@ -80,8 +79,10 @@ class GeminiAdapter(BaseAdapter):
             config_kwargs["temperature"] = request.temperature
 
         if request.response_schema:
+            json_schema = request.response_schema.model_json_schema()
             config_kwargs["response_mime_type"] = "application/json"
-            config_kwargs["response_schema"] = request.response_schema
+            config_kwargs["response_json_schema"] = json_schema
+            # config_kwargs["temperature"] = 0.2
 
         tools_list = []
         if request.tools:
@@ -99,9 +100,7 @@ class GeminiAdapter(BaseAdapter):
             )
 
         if request.enable_search:
-            tools_list.append(
-                gemini_types.Tool(google_search=gemini_types.GoogleSearch())
-            )
+            tools_list.append(gemini_types.Tool(google_search=gemini_types.GoogleSearch()))
 
         if tools_list:
             config_kwargs["tools"] = tools_list
@@ -121,18 +120,13 @@ class GeminiAdapter(BaseAdapter):
         parsed = getattr(response, "parsed", None)
         text_content = getattr(response, "text", None)
 
-        if request.response_schema and parsed is None:
-            if text_content:
-                try:
-                    parsed = request.response_schema.model_validate_json(text_content)
-                except Exception as parse_err:
-                    raise SchemaParseError(
-                        f"Failed to parse Gemini response into schema {request.response_schema}: {parse_err}"
-                    ) from parse_err
-            else:
+        if request.response_schema and text_content:
+            try:
+                parsed = request.response_schema.model_validate_json(text_content)
+            except Exception as parse_err:
                 raise SchemaParseError(
-                    f"Gemini response did not conform to schema for model '{request.model}'."
-                )
+                    f"Failed to parse Gemini response into schema {request.response_schema}: {parse_err}"
+                ) from parse_err
 
         tool_calls = self._extract_tool_calls(response)
 

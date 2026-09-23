@@ -118,3 +118,13 @@ volcengine/doubao-pro-32k
 ## License
 
 MIT
+
+## TODO
+
+Do not retry if API error:
+File "/Users/kunlu/proj/gento/gento/adapters/gemini.py", line 119, in generate
+raise APIError(f"Gemini API error: {str(e)}") from e
+
+File "/Users/kunlu/proj/gento/gento/adapters/gemini.py", line 117, in generate
+raise APIError(f"Gemini API error: {str(e)}") from e
+gento.exceptions.APIError: Gemini API error: Object of type ModelMetaclass is not JSON serializable
