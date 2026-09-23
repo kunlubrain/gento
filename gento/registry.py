@@ -79,6 +79,7 @@ MODEL_REGISTRY: dict[str, ModelDefinition] = {
     "google/gemini-3.5-flash": GEMINI_MODEL_DEF,
     "google/gemini-3.6-flash": GEMINI_MODEL_DEF,
     "google/gemini-3.7-flash": GEMINI_MODEL_DEF,
+    "google/gemini-3.8-flash": GEMINI_MODEL_DEF,
     "openai/gpt-4o": OPENAI_MODEL_DEF,
     "openai/gpt-4o-mini": OPENAI_MODEL_DEF,
     "openai/gpt-5": OPENAI_MODEL_DEF,
