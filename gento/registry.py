@@ -83,6 +83,8 @@ MODEL_REGISTRY: dict[str, ModelDefinition] = {
     "openai/gpt-4o": OPENAI_MODEL_DEF,
     "openai/gpt-4o-mini": OPENAI_MODEL_DEF,
     "openai/gpt-5": OPENAI_MODEL_DEF,
+    "openai/gpt-5.6-luna": OPENAI_MODEL_DEF,
+    "openai/gpt-6-luna": OPENAI_MODEL_DEF,
     "volcengine/doubao-1.5-pro-32k": ARK_MODEL_DEF,
     "volcengine/doubao-pro-32k": ARK_MODEL_DEF,
 }
