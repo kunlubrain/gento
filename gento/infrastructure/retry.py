@@ -17,10 +17,24 @@ from ..exceptions import APIError, RateLimitError, SchemaParseError
 logger = logging.getLogger("gento.retry")
 
 
+NON_RETRYABLE_STATUS_CODES = {
+    400,  # Bad Request (invalid prompt, schema, parameters)
+    401,  # Unauthorized (invalid API key)
+    403,  # Forbidden / Permission Denied
+    404,  # Not Found (model does not exist, bad endpoint)
+    422,  # Unprocessable Entity
+    429,  # Rate limit exceeded / Resource exhausted
+    503,  # Service Unavailable / Overloaded
+}
+
+
 def is_retryable_exception(exc: BaseException) -> bool:
     """Determine whether an exception should be retried.
 
-    Do not retry 429 (rate limit) or 503 (service unavailable) errors.
+    Do not retry errors that will not succeed on immediate retry:
+    - 400 (bad request), 401 (unauthorized), 403 (forbidden), 404 (not found),
+      422 (unprocessable), 429 (rate limit), 503 (service unavailable).
+    - RateLimitError.
     """
     if isinstance(exc, RateLimitError):
         return False
@@ -31,17 +45,21 @@ def is_retryable_exception(exc: BaseException) -> bool:
     current: BaseException | None = exc
     while current is not None:
         status_code = getattr(current, "status_code", None) or getattr(current, "code", None)
-        if status_code in (429, 503):
+        if status_code in NON_RETRYABLE_STATUS_CODES:
             return False
 
         msg = str(current)
-        if re.search(r"\b(429|503)\b", msg):
+        if re.search(r"\b(400|401|403|404|422|429|503)\b", msg):
             return False
         if re.search(r"resource[ _-]?exhausted", msg, re.IGNORECASE):
             return False
         if re.search(r"rate[ _-]?limit", msg, re.IGNORECASE):
             return False
         if re.search(r"service[ _-]?unavailable", msg, re.IGNORECASE):
+            return False
+        if re.search(r"not[ _-]?found", msg, re.IGNORECASE):
+            return False
+        if re.search(r"permission[ _-]?denied|unauthorized|forbidden", msg, re.IGNORECASE):
             return False
 
         current = getattr(current, "__cause__", None) or getattr(current, "__context__", None)

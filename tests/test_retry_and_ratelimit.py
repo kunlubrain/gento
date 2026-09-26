@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import BaseModel
 
-from gento.exceptions import SchemaParseError
+from gento.exceptions import APIError, SchemaParseError
 from gento.infrastructure.rate_limiter import RateLimiterManager
 from gento.infrastructure.retry import execute_with_retry
 
@@ -70,16 +70,21 @@ async def test_no_retry_on_rate_limit_error():
         lambda: APIError("Service Unavailable"),
         lambda: APIError("429 Too Many Requests"),
         lambda: APIError("503 Backend Error"),
+        lambda: APIError("OpenAI API error: 404 Not Found"),
+        lambda: APIError("Model 'nonexistent-model' not found"),
+        lambda: APIError("Gemini API error: 401 Unauthorized"),
+        lambda: APIError("403 Forbidden"),
+        lambda: APIError("400 Bad Request: Invalid parameter"),
     ],
 )
-async def test_no_retry_on_429_and_503_api_errors(error_factory):
+async def test_no_retry_on_non_retryable_api_errors(error_factory):
     mock_func = AsyncMock()
     mock_func.side_effect = error_factory()
 
     with pytest.raises(APIError):
         await execute_with_retry(mock_func, retry_count=3)
 
-    # Should NOT retry at all for 429 and 503
+    # Should NOT retry at all for 429, 503, 404, 401, 403, 400
     assert mock_func.call_count == 1
 
 

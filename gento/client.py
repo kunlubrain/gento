@@ -37,7 +37,7 @@ class LLMClient:
         :param rate_limit_rps: Optional rate limit in requests per second.
         :param max_retries: Default retry count for failed schema validation or rate limits.
         """
-        self.default_model = model or "google/gemini-3.5-flash"
+        self.default_model = model or "google/gemini-3.7-flash"
         self.rate_limiter = RateLimiterManager(default_rps=rate_limit_rps)
         self.default_max_retries = max_retries
         self._adapters: dict[str, BaseAdapter] = {}
